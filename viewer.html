@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bus Tracker Viewer</title>
+<title>Viewer</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
   #map { height: 90vh; width: 100%; }
@@ -12,33 +12,29 @@
 </head>
 <body>
 
-<select id="deviceSelector"><option>Select a device</option></select>
+<select id="selector"><option>Select a device</option></select>
 <div id="map"></div>
 
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Replace with your Render URL
+const SERVER_URL = "https://bus-tracker-mqrq.onrender.com";
 const socket = io(SERVER_URL);
 
-// Map setup
-const map = L.map('map').setView([0, 0], 2);
+const map = L.map('map').setView([0,0],2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-// Store devices
-const devices = {};
-const markers = {};
-
-const selector = document.getElementById("deviceSelector");
-let selectedDeviceId = null;
+const devices = {}; // store markers and info
+const selector = document.getElementById("selector");
+let selectedId = null;
 
 selector.addEventListener("change", () => {
-  selectedDeviceId = selector.value;
-  if (selectedDeviceId && devices[selectedDeviceId]) {
-    const { lat, lon, number } = devices[selectedDeviceId];
-    markers[selectedDeviceId].bindPopup(`Number: ${number}`).openPopup();
+  selectedId = selector.value;
+  if (selectedId && devices[selectedId]) {
+    const { marker, number, lat, lon } = devices[selectedId];
+    marker.bindPopup(`Number: ${number}`).openPopup();
     map.setView([lat, lon], 14);
   }
 });
@@ -46,22 +42,26 @@ selector.addEventListener("change", () => {
 socket.on("location", (data) => {
   const { id, name, number, lat, lon } = data;
 
-  // Save device data
-  devices[id] = { name, number, lat, lon };
+  if (!devices[id]) {
+    // create marker
+    const marker = L.marker([lat, lon]).addTo(map).bindPopup(`Number: ${number}`);
+    devices[id] = { marker, number, lat, lon };
 
-  // Add/update marker
-  if (!markers[id]) {
-    markers[id] = L.marker([lat, lon]).addTo(map).bindPopup(`Number: ${number}`);
-    
-    // Add to selector if not exists
+    // add to dropdown
     const option = document.createElement("option");
     option.value = id;
-    option.text = devices[id].name; // Use stored name
+    option.text = name;
     selector.add(option);
   } else {
-    markers[id].setLatLng([lat, lon]);
-    if (selectedDeviceId === id) {
-      markers[id].bindPopup(`Number: ${number}`).openPopup();
+    // update existing marker
+    devices[id].marker.setLatLng([lat, lon]);
+    devices[id].lat = lat;
+    devices[id].lon = lon;
+    devices[id].number = number;
+
+    // if selected, update popup and center map
+    if (selectedId === id) {
+      devices[id].marker.bindPopup(`Number: ${number}`).openPopup();
       map.setView([lat, lon], 14);
     }
   }
