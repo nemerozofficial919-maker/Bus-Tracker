@@ -1,7 +1,6 @@
-const fs = require("fs");
-const https = require("https");
 const express = require("express");
 const { Server } = require("socket.io");
+const http = require("http");
 const path = require("path");
 const app = express();
 app.use(express.json());
@@ -10,11 +9,9 @@ app.use(express.json());
 app.get("/device.html", (req, res) => res.sendFile(path.join(__dirname, "device.html")));
 app.get("/viewer.html", (req, res) => res.sendFile(path.join(__dirname, "viewer.html")));
 
-// Use mkcert certs (same folder)
-const server = https.createServer({
-  key: fs.readFileSync(path.join(__dirname, "192.168.1.6+1-key.pem")),
-  cert: fs.readFileSync(path.join(__dirname, "192.168.1.6+1.pem"))
-}, app);
+// Use dynamic port from Render or default to 3000 for local testing
+const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
 
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -25,7 +22,4 @@ app.post("/update", (req, res) => {
   res.sendStatus(200);
 });
 
-// Instead of hardcoding 3000
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`HTTPS server running on port ${PORT}`));
-
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
