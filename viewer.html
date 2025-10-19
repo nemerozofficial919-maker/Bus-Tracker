@@ -1,71 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Viewer</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<style>
-  #map { height: 90vh; width: 100%; }
-  #selector { margin: 5px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>Bus Tracker Viewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { margin: 0; }
+    #map { height: 100vh; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
+  <div id="controls">
+    <select id="routeSelect">
+      <option value="">-- Select Route --</option>
+    </select>
+    <button id="showRoute">Show Route</button>
+  </div>
+  <div id="map"></div>
 
-<select id="selector"><option>Select a device</option></select>
-<div id="map"></div>
+  <script>
+    const map = L.map("map").setView([6.9271, 79.8612], 10);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Replace with your Render URL
-const socket = io(SERVER_URL);
+    let markers = {};
+    let currentRouteLine = null;
 
-// Map setup
-const map = L.map('map').setView([0,0],2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+    // Load routes list
+    fetch("routes.json")
+      .then(res => res.json())
+      .then(routes => {
+        const select = document.getElementById("routeSelect");
+        Object.keys(routes).forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
 
-const devices = {}; // store markers + info
-const selector = document.getElementById("selector");
-let selectedId = null;
+        document.getElementById("showRoute").onclick = () => {
+          const selected = select.value;
+          if (!selected) return;
+          const coords = routes[selected];
+          if (currentRouteLine) map.removeLayer(currentRouteLine);
+          currentRouteLine = L.polyline(coords, {
+            color: "blue",
+            weight: 4
+          }).addTo(map);
+          map.fitBounds(currentRouteLine.getBounds());
+        };
+      });
 
-selector.addEventListener("change", () => {
-  selectedId = selector.value;
-  if (selectedId && devices[selectedId]) {
-    const { marker, number, lat, lon } = devices[selectedId];
-    marker.bindPopup(`Number: ${number}`).openPopup();
-    map.setView([lat, lon], 14);
-  }
-});
-
-socket.on("location", (data) => {
-  const { id, name, number, lat, lon } = data;
-
-  if (!devices[id]) {
-    // create marker
-    const marker = L.marker([lat, lon]).addTo(map).bindPopup(`Number: ${number}`);
-    devices[id] = { marker, number, lat, lon };
-
-    // add to dropdown
-    const option = document.createElement("option");
-    option.value = id;
-    option.text = name;
-    selector.add(option);
-  } else {
-    // update existing marker
-    devices[id].marker.setLatLng([lat, lon]);
-    devices[id].lat = lat;
-    devices[id].lon = lon;
-    devices[id].number = number;
-
-    if (selectedId === id) {
-      devices[id].marker.bindPopup(`Number: ${number}`).openPopup();
-      map.setView([lat, lon], 14);
-    }
-  }
-});
-</script>
+    // Handle live location updates
+    const socket = io();
+    socket.on("location", data => {
+      const { id, name, number, lat, lon } = data;
+      if (!markers[id]) {
+        markers[id] = L.marker([lat, lon]).addTo(map)
+          .bindPopup(`${name} (${number})`);
+      } else {
+        markers[id].setLatLng([lat, lon]);
+      }
+    });
+  </script>
 </body>
 </html>
