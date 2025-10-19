@@ -1,48 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Device Sender</title>
+  <meta charset="UTF-8" />
+  <title>Bus GPS Sender</title>
 </head>
 <body>
-<h2>Send Your Location</h2>
+  <h2>Bus GPS Sender</h2>
+  <form id="busForm">
+    <input id="busName" placeholder="Bus Name" required>
+    <input id="busNumber" placeholder="Bus Number" required>
+    <button type="submit">Start Sending</button>
+  </form>
+  <p id="status"></p>
 
-<label>Name: <input id="name" placeholder="Bus 1"></label><br>
-<label>Number: <input id="number" placeholder="12345"></label><br>
-<button onclick="startTracking()">Start Tracking</button>
+  <script>
+    const form = document.getElementById('busForm');
+    const status = document.getElementById('status');
+    let sending = false;
 
-<script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Replace with your Render URL
-let deviceId = Date.now(); // unique per device
-let interval;
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('busName').value;
+      const number = document.getElementById('busNumber').value;
+      sending = true;
+      status.textContent = "Sending location...";
+      sendLocation(name, number);
+    });
 
-function sendLocation(position) {
-  const name = document.getElementById("name").value || "Unknown";
-  const number = document.getElementById("number").value || "N/A";
-
-  fetch(`${SERVER_URL}/update`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: deviceId,
-      name: name,
-      number: number,
-      lat: position.coords.latitude,
-      lon: position.coords.longitude
-    })
-  });
-}
-
-function startTracking() {
-  if (!navigator.geolocation) { alert("Geolocation not supported!"); return; }
-  if (interval) return; // already running
-
-  function track() { navigator.geolocation.getCurrentPosition(sendLocation); }
-  track(); // run immediately
-  interval = setInterval(track, 5000);
-  alert("Tracking started!");
-}
-</script>
+    function sendLocation(name, number) {
+      if (navigator.geolocation) {
+        navigator.geolocation.watchPosition(
+          pos => {
+            const { latitude, longitude } = pos.coords;
+            fetch("/update", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: name + number,
+                name,
+                number,
+                lat: latitude,
+                lon: longitude
+              })
+            });
+          },
+          err => (status.textContent = "Error: " + err.message),
+          { enableHighAccuracy: true, maximumAge: 1000 }
+        );
+      } else {
+        status.textContent = "Geolocation not supported.";
+      }
+    }
+  </script>
 </body>
 </html>
