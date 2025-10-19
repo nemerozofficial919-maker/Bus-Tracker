@@ -3,23 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bus GPS Sender</title>
+<title>Device Sender</title>
 </head>
 <body>
-<h2>Bus GPS Sender</h2>
-
-<label>Name: <input id="busName" placeholder="Bus 1" /></label><br/>
-<label>Number: <input id="busNumber" placeholder="12345" /></label><br/>
-
+<h2>Send Your Location</h2>
+<label>Name: <input id="name" placeholder="Bus 1"></label><br>
+<label>Number: <input id="number" placeholder="12345"></label><br>
 <button onclick="startTracking()">Start Tracking</button>
 
 <script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Replace with your Render URL
+const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // your Render URL
 let deviceId = Date.now(); // unique per device
+let interval;
 
 function sendLocation(position) {
-  const name = document.getElementById("busName").value || "Unknown";
-  const number = document.getElementById("busNumber").value || "N/A";
+  const name = document.getElementById("name").value || "Unknown";
+  const number = document.getElementById("number").value || "N/A";
 
   fetch(`${SERVER_URL}/update`, {
     method: "POST",
@@ -29,25 +28,18 @@ function sendLocation(position) {
       name: name,
       number: number,
       lat: position.coords.latitude,
-      lon: position.coords.longitude,
-      ts: Date.now()
+      lon: position.coords.longitude
     })
   });
 }
 
-let intervalId;
-
 function startTracking() {
-  if (!navigator.geolocation) {
-    alert("Geolocation not supported!");
-    return;
+  if (interval) return; // already running
+  function track() {
+    navigator.geolocation.getCurrentPosition(sendLocation);
   }
-  if (intervalId) return; // already tracking
-  function trackBus() {
-    navigator.geolocation.getCurrentPosition(sendLocation, err => console.error(err));
-  }
-  trackBus(); // start immediately
-  intervalId = setInterval(trackBus, 5000);
+  track(); // run immediately
+  interval = setInterval(track, 5000);
   alert("Tracking started!");
 }
 </script>
