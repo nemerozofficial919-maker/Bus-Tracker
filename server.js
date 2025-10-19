@@ -5,17 +5,14 @@ const path = require("path");
 
 const app = express();
 app.use(express.json());
-app.use(express.static(__dirname)); // serve device.html & viewer.html
+app.use(express.static(__dirname));
 
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// Endpoint for devices to send location
 app.post("/update", (req, res) => {
   const { id, name, number, lat, lon } = req.body;
   if (!id || !lat || !lon) return res.sendStatus(400);
-
-  // broadcast to all viewers
   io.emit("location", { id, name, number, lat, lon });
   res.sendStatus(200);
 });
