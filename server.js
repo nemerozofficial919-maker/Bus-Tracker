@@ -25,4 +25,7 @@ app.post("/update", (req, res) => {
   res.sendStatus(200);
 });
 
-server.listen(3000, () => console.log("HTTPS server running on port 3000"));
+// Instead of hardcoding 3000
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`HTTPS server running on port ${PORT}`));
+
