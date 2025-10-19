@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bus Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>#map { height: 100vh; }</style>
+</head>
+<body>
+<div id="map"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const map = L.map('map').setView([0,0], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+const marker = L.marker([0,0]).addTo(map);
+marker.bindPopup("Bus Location");
+
+const socket = io(); // connects automatically to Node server
+
+socket.on("location", data => {
+  if(data.id === "bus-001") {
+    const pos = [data.lat, data.lon];
+    marker.setLatLng(pos);
+    marker.getPopup().setContent(`Bus is here!<br>Lat: ${data.lat.toFixed(6)}, Lon: ${data.lon.toFixed(6)}`);
+    map.setView(pos);
+  }
+});
+</script>
+</body>
+</html>
