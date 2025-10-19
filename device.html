@@ -1,54 +1,43 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Bus GPS Sender</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bus GPS Sender</title>
 </head>
 <body>
 <h2>Bus GPS Sender</h2>
-<p id="status">Waiting for location...</p>
-<p id="coords"></p>
-<button id="toggle">Stop Sharing</button>
-
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
-const DEVICE_ID = "bus-001";
-let sending = true;
-const statusEl = document.getElementById("status");
-const coordsEl = document.getElementById("coords");
-const toggleBtn = document.getElementById("toggle");
+const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Your Render URL
+const DEVICE_ID = "bus-1"; // Change for each bus if multiple
 
-// toggle sending
-toggleBtn.onclick = () => {
-  sending = !sending;
-  toggleBtn.textContent = sending ? "Stop Sharing" : "Start Sharing";
-  statusEl.textContent = sending ? "Sharing location..." : "Sharing paused";
-};
-
-// function to send to server
-function sendLocation(lat, lon) {
-  fetch("/update", {
+// Function to send GPS to server
+function sendLocation(position) {
+  fetch(`${SERVER_URL}/update`, {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({id: DEVICE_ID, lat, lon, ts: Date.now()})
-  }).catch(err => console.error(err));
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: DEVICE_ID,
+      lat: position.coords.latitude,
+      lon: position.coords.longitude,
+      ts: Date.now()
+    })
+  });
 }
 
-// watch location
-if ("geolocation" in navigator) {
-  navigator.geolocation.watchPosition(pos => {
-    const lat = pos.coords.latitude;
-    const lon = pos.coords.longitude;
-    coordsEl.textContent = `Lat: ${lat.toFixed(6)}, Lon: ${lon.toFixed(6)}`;
-    statusEl.textContent = sending ? "Sharing location..." : "Sharing paused";
-    if(sending) sendLocation(lat, lon);
-  }, err => {
-    console.error(err);
-    statusEl.textContent = "Error getting location: " + err.message;
-  }, {enableHighAccuracy:true, maximumAge:2000, timeout:10000});
-} else {
-  alert("Geolocation not supported");
+// Track location every few seconds
+function trackBus() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(sendLocation, (err) => {
+      console.error("Error getting location:", err);
+    });
+  }
 }
+
+// Update every 5 seconds
+setInterval(trackBus, 5000);
+trackBus(); // Start immediately
 </script>
 </body>
 </html>
