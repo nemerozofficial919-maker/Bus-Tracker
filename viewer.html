@@ -18,7 +18,7 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com";
+const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Replace with your Render URL
 const socket = io(SERVER_URL);
 
 // Map setup
@@ -52,10 +52,11 @@ socket.on("location", (data) => {
   // Add/update marker
   if (!markers[id]) {
     markers[id] = L.marker([lat, lon]).addTo(map).bindPopup(`Number: ${number}`);
+    
     // Add to selector if not exists
     const option = document.createElement("option");
     option.value = id;
-    option.text = name;
+    option.text = devices[id].name; // Use stored name
     selector.add(option);
   } else {
     markers[id].setLatLng([lat, lon]);
