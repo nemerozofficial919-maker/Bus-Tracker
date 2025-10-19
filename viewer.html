@@ -18,15 +18,16 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com";
+const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Replace with your Render URL
 const socket = io(SERVER_URL);
 
+// Map setup
 const map = L.map('map').setView([0,0],2);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
 
-const devices = {}; // store markers and info
+const devices = {}; // store markers + info
 const selector = document.getElementById("selector");
 let selectedId = null;
 
@@ -59,7 +60,6 @@ socket.on("location", (data) => {
     devices[id].lon = lon;
     devices[id].number = number;
 
-    // if selected, update popup and center map
     if (selectedId === id) {
       devices[id].marker.bindPopup(`Number: ${number}`).openPopup();
       map.setView([lat, lon], 14);
