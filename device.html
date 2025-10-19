@@ -7,18 +7,28 @@
 </head>
 <body>
 <h2>Bus GPS Sender</h2>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script>
-const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Your Render URL
-const DEVICE_ID = "bus-1"; // Change for each bus if multiple
 
-// Function to send GPS to server
+<label>Name: <input id="busName" placeholder="Bus 1" /></label><br/>
+<label>Number: <input id="busNumber" placeholder="12345" /></label><br/>
+
+<button onclick="startTracking()">Start Tracking</button>
+
+<script>
+const SERVER_URL = "https://bus-tracker-mqrq.onrender.com"; // Render URL
+
+let deviceId = Date.now(); // unique per device
+
 function sendLocation(position) {
+  const name = document.getElementById("busName").value || "Unknown";
+  const number = document.getElementById("busNumber").value || "N/A";
+
   fetch(`${SERVER_URL}/update`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      id: DEVICE_ID,
+      id: deviceId,
+      name: name,
+      number: number,
       lat: position.coords.latitude,
       lon: position.coords.longitude,
       ts: Date.now()
@@ -26,18 +36,21 @@ function sendLocation(position) {
   });
 }
 
-// Track location every few seconds
-function trackBus() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(sendLocation, (err) => {
-      console.error("Error getting location:", err);
-    });
-  }
-}
+let intervalId;
 
-// Update every 5 seconds
-setInterval(trackBus, 5000);
-trackBus(); // Start immediately
+function startTracking() {
+  if (!navigator.geolocation) {
+    alert("Geolocation not supported!");
+    return;
+  }
+  if (intervalId) return; // already tracking
+  function trackBus() {
+    navigator.geolocation.getCurrentPosition(sendLocation, err => console.error(err));
+  }
+  trackBus(); // start immediately
+  intervalId = setInterval(trackBus, 5000);
+  alert("Tracking started!");
+}
 </script>
 </body>
 </html>
